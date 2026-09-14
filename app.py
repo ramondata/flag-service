@@ -58,7 +58,7 @@ def require_auth(f):
                 log.warning(
                     f"Falha na validação da chave (status: {response.status_code})"
                 )
-                return jsonify({"error": "Chave de API inválida, por favor, tente novamente"}), 401
+                return jsonify({"error": "Chave de API inválida"}), 401
 
         except requests.exceptions.Timeout:
             log.error("Timeout ao conectar com o auth-service")
@@ -232,8 +232,7 @@ def update_flag(name):
 @require_auth
 def delete_flag(name):
     """Deleta uma feature flag"""
-    conn = None
-    cur = None
+    conn,cur = None,None
     try:
         conn = pool.getconn()
         cur = conn.cursor()
