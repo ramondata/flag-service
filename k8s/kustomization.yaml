@@ -1,0 +1,10 @@
+namespace: toggle-master
+
+resources:
+  - flag-service-secret.yaml
+  - rds-init-job.yaml
+
+configMapGenerator:
+  - name: rds-init-sql
+    files:
+      - init.sql=../db/init.sql

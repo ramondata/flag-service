@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rds-init
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: postgres-init
+          image: postgres:16-alpine
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              psql \
+                --host="$PGHOST" \
+                --port="$PGPORT" \
+                --username="$PGUSER" \
+                --dbname="$PGDATABASE" \
+                --set=ON_ERROR_STOP=on \
+                --file=/sql/init.sql
+          env:
+            - name: PGSSLMODE
+              value: require
+
+            - name: PGHOST
+              value: "dev-flag-service-database.cahgwak00ah1.us-east-1.rds.amazonaws.com"
+
+            - name: PGPORT
+              value: "5432"
+
+            - name: PGDATABASE
+              value: "flags_db"
+
+            - name: PGUSER
+              value: "teste"
+
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: flag-service-secrets
+                  key: postgres-password
+
+          volumeMounts:
+            - name: init-sql
+              mountPath: /sql
+              readOnly: true
+
+      volumes:
+        - name: init-sql
+          configMap:
+            name: rds-init-sql

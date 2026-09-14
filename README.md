@@ -8,7 +8,103 @@ Este é o serviço de CRUD (Create, Read, Update, Delete) do projeto ToggleMaste
 
 * [Python](https://www.python.org/) (versão 3.9 ou superior)
 * [PostgreSQL](https://www.postgresql.org/download/) (rodando localmente ou em um contêiner Docker)
+*  Docker e Docker Compose
 * O `auth-service` deve estar rodando (localmente na porta `8001`).
+* Acesso ao GitHub Actions e ao repositório GitOps do projeto
+
+## 📂 Estrutura do projeto
+
+- `app.py`: aplicação Flask com autenticação, CRUD e conexão ao PostgreSQL
+- `db/init.sql`: script de criação da tabela `flags`
+- `Dockerfile`: imagem de container do serviço
+- `docker-compose.yaml`: ambiente local com PostgreSQL e serviço da aplicação
+- `k8s/`: manifests Kubernetes para deploy e configuração
+- `.github/workflows/ci-flag.yaml`: pipeline CI/CD do serviço
+- `test_app.py`: testes automatizados da API
+
+## <img src="https://raw.githubusercontent.com/marwin1991/profile-technology-icons/refs/heads/main/icons/docker.png" width="25" height="25" /> Execução com Docker Compose
+
+O arquivo [docker-compose.yaml](docker-compose.yaml) já configura:
+
+- contêiner do PostgreSQL
+- contêiner do `flag-service`
+- rede compartilhada com outros microserviços
+
+Para subir o ambiente:
+
+```bash
+docker compose up --build
+```
+
+O serviço ficará acessível em:
+
+- http://localhost:8002
+
+## <img src="https://raw.githubusercontent.com/marwin1991/profile-technology-icons/refs/heads/main/icons/postgresql.png" width="25" height="25" /> Banco de dados
+
+A tabela principal é `flags`, criada pelo script [db/init.sql](db/init.sql):
+
+- `id`: identificador
+- `name`: nome único da flag
+- `description`: descrição da funcionalidade
+- `is_enabled`: flag ativa/inativa
+- `created_at`: timestamp de criação
+- `updated_at`: timestamp de atualização
+
+Além disso, há um trigger para atualizar automaticamente `updated_at` em cada `UPDATE`.
+
+## <img src="https://raw.githubusercontent.com/marwin1991/profile-technology-icons/refs/heads/main/icons/kubernetes.png" width="25" height="25" /> Kubernetes e deploy
+
+A pasta [k8s](k8s) contém os manifests do deploy em cluster Kubernetes, incluindo:
+
+- `flag-service-deployment.yaml`: deployment com 2 réplicas
+- `flag-service-service.yaml`: serviço do app
+- `flag-service-config.yaml`: ConfigMap com variáveis do serviço
+- `flag-service-secret.yaml`: segredos da aplicação
+- `postgres-deployment.yaml`: banco PostgreSQL
+- `postgres-service.yaml`: serviço do banco
+- `postgres-pvc.yaml`: persistência do volume
+- `postgres-init-configmap.yaml`: configuração inicial do banco
+- `rds-init-job.yaml`: job para provisionamento/bootstrapping do RDS
+- `kustomization.yaml`: orquestração dos manifests
+
+Observações importantes:
+
+- O deployment do `flag-service` expõe a porta `8002`
+- Há probes de liveness e readiness em `/health`
+- O serviço usa `DATABASE_URL` e `AUTH_SERVICE_URL` configurados via env
+- O namespace utilizado é `toggle-master`
+
+## <img src="https://raw.githubusercontent.com/marwin1991/profile-technology-icons/refs/heads/main/icons/githubactions.png" width="25" height="25" /> Pipeline CI/CD
+
+O workflow em [.github/workflows/ci-flag.yaml](.github/workflows/ci-flag.yaml) define a pipeline do serviço.
+
+### Fluxo atual
+
+1. Disparo manual ou em eventos de `pull_request` e `push` na branch `TC_fase03`
+2. Execução do workflow reutilizável de CI do repositório `astronomaelaine/CI-reusable-source-py`
+3. Build da imagem do serviço
+4. Publicação da imagem no registro ECR configurado por variáveis do ambiente
+5. Geração de tag de imagem com o valor de `APP_VERSION`
+6. Atualização automática do repositório GitOps para o serviço `flag-service`
+
+## <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/argo-cd.png" width="25" height="25" /> Atualização do GitOps
+
+No job `gitops-update`, a ação:
+
+- clona o repositório `ramondata/toggle-master-gitops`
+- altera o valor do campo `tag` em `apps/flag-service/values.yaml`
+- realiza commit com mensagem do tipo:
+
+```bash
+chore(flag-service): deploy <image-tag>
+```
+
+- envia a alteração para a branch `master`
+
+Esse processo permite que o deploy do serviço seja automatizado após aprovação do pipeline.
+
+
 
 ## 🚀 Rodando Localmente
 
@@ -104,3 +200,5 @@ curl -X PUT http://localhost:8002/flags/enable-new-dashboard \
 -d '{"is_enabled": false}'
 ```
 Saída esperada: (O JSON da flag atualizada, com `"is_enabled": false`).
+
+[def]: https://shields.io
