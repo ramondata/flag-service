@@ -5,7 +5,7 @@ on:
   pull_request:
   push:
     branches:
-      - TC_fase03
+      - aws-cloud-k8s
 
 permissions:
   contents: read
@@ -39,7 +39,7 @@ jobs:
 
     if: >
       github.event_name == 'push' &&
-      github.ref == 'refs/heads/TC_fase03'
+      github.ref == 'refs/heads/aws-cloud-k8s'
 
     runs-on: ubuntu-latest
 
