@@ -102,12 +102,13 @@ A cada reinício do laboratório, substitua o bloco inteiro do secret e use
 Alterar o secret não dispara o pipeline. O botão **Run workflow** depende de
 este arquivo também existir na branch padrão do repositório.
 
-### GitOps opcional
+### GitOps automático
 
-O objetivo padrão é armazenar a imagem no ECR. A atualização do GitOps fica
-**desativada por padrão**. Para habilitá-la depois, defina a variável
-`GITOPS_UPDATE_ENABLED=true` e configure `GITOPS_DEPLOY_KEY` com acesso de
-escrita ao repositório existente `ramondata/toggle-master-gitops`.
+Após a publicação da imagem, o pipeline atualiza automaticamente o repositório
+existente `ramondata/toggle-master-gitops`. Configure `GITOPS_DEPLOY_KEY` neste
+repositório com uma chave privada autorizada a escrever no GitOps.
+Os pushes fazem rebase e até três tentativas para acomodar atualizações de
+outros serviços na mesma branch sem usar force push.
 O job atualiza repositório e tag em `apps/flag-service/values.yaml`, na
 `master`. A configuração de ArgoCD e do cluster é uma etapa separada.
 

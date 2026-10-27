@@ -39,7 +39,6 @@ jobs:
       - ci
 
     if: >
-      vars.GITOPS_UPDATE_ENABLED == 'true' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       github.ref == 'refs/heads/aws-cloud-k8s'
 
@@ -53,6 +52,7 @@ jobs:
           ref: master
           ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY }}
           path: gitops
+          fetch-depth: 0
 
       - name: Update flag-service image repository and tag
         env:
@@ -90,4 +90,13 @@ jobs:
           fi
 
           git commit -m "chore(flag-service): deploy ${IMAGE_TAG}"
-          git push origin master
+          for attempt in 1 2 3; do
+            git pull --rebase origin master
+            if git push origin HEAD:master; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Could not update GitOps after three push attempts."
+              exit 1
+            fi
+          done
