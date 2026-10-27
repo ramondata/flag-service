@@ -75,36 +75,41 @@ Observações importantes:
 - O serviço usa `DATABASE_URL` e `AUTH_SERVICE_URL` configurados via env
 - O namespace utilizado é `toggle-master`
 
-## <img src="https://raw.githubusercontent.com/marwin1991/profile-technology-icons/refs/heads/main/icons/githubactions.png" width="25" height="25" /> Pipeline CI/CD
+## CI/CD no AWS Academy
 
-O workflow em [.github/workflows/ci-flag.yaml](.github/workflows/ci-flag.yaml) define a pipeline do serviço.
+O pipeline da branch produtiva `aws-cloud-k8s` autentica com o repository secret
+`AWS_ACADEMY_CREDENTIALS`. Cole o bloco de **AWS Details → AWS CLI**, com
+`aws_access_key_id`, `aws_secret_access_key` e `aws_session_token`.
+O cabeçalho `[default]` é opcional. O secret é configurado neste repositório;
+o secret do auth-service não é compartilhado automaticamente.
 
-### Fluxo atual
+O workflow usa `ramondata/CI-reusable-source`, fixado por SHA, no modo Academy.
+As credenciais são validadas e mascaradas, sem assumir uma role via OIDC.
+O código-fonte e a imagem passam pelas verificações antes da publicação no ECR.
+Pull requests executam somente as verificações, sem autenticar na AWS.
 
-1. Disparo manual ou em eventos de `pull_request` e `push` na branch `TC_fase03`
-2. Execução do workflow reutilizável de CI do repositório `astronomaelaine/CI-reusable-source-py`
-3. Build da imagem do serviço
-4. Publicação da imagem no registro ECR configurado por variáveis do ambiente
-5. Geração de tag de imagem com o valor de `APP_VERSION`
-6. Atualização automática do repositório GitOps para o serviço `flag-service`
+| Variável opcional | Valor padrão |
+| --- | --- |
+| `AWS_REGION` | `us-east-1` |
+| `ECR_REPOSITORY` | `toggle-master/flag-service` |
+| `APP_VERSION` | `v1.0.0` |
 
-## <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/argo-cd.png" width="25" height="25" /> Atualização do GitOps
+O ECR deve existir na conta e região do laboratório. A tag publicada segue
+`APP_VERSION-SHA_CURTO`, por exemplo `v1.0.0-abcdef1`.
 
-No job `gitops-update`, a ação:
+A cada reinício do laboratório, substitua o bloco inteiro do secret e use
+**Re-run all jobs** numa execução por push que já contenha esta alteração.
+Alterar o secret não dispara o pipeline. O botão **Run workflow** depende de
+este arquivo também existir na branch padrão do repositório.
 
-- clona o repositório `ramondata/toggle-master-gitops`
-- altera o valor do campo `tag` em `apps/flag-service/values.yaml`
-- realiza commit com mensagem do tipo:
+### GitOps opcional
 
-```bash
-chore(flag-service): deploy <image-tag>
-```
-
-- envia a alteração para a branch `master`
-
-Esse processo permite que o deploy do serviço seja automatizado após aprovação do pipeline.
-
-
+O objetivo padrão é armazenar a imagem no ECR. A atualização do GitOps fica
+**desativada por padrão**. Para habilitá-la depois, defina a variável
+`GITOPS_UPDATE_ENABLED=true` e configure `GITOPS_DEPLOY_KEY` com acesso de
+escrita ao repositório existente `ramondata/toggle-master-gitops`.
+O job atualiza repositório e tag em `apps/flag-service/values.yaml`, na
+`master`. A configuração de ArgoCD e do cluster é uma etapa separada.
 
 ## 🚀 Rodando Localmente
 
