@@ -10,6 +10,8 @@ from flask import Flask, jsonify, request
 from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
 
+from telemetry import configure
+
 # Configura o logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -18,6 +20,8 @@ log = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
+
+configure(app, "flag-service")
 
 # --- Configuração ---
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -62,14 +66,16 @@ def require_auth(f):
 
         except requests.exceptions.Timeout:
             log.error("Timeout ao conectar com o auth-service")
-            return jsonify(
-                {"error": "Serviço de autenticação indisponível (timeout)"}
-            ), 504  # Gateway Timeout
+            return (
+                jsonify({"error": "Serviço de autenticação indisponível (timeout)"}),
+                504,
+            )  # Gateway Timeout
         except requests.exceptions.RequestException as e:
             log.error(f"Erro ao conectar com o auth-service: {e}")
-            return jsonify(
-                {"error": "Serviço de autenticação indisponível"}
-            ), 503  # Service Unavailable
+            return (
+                jsonify({"error": "Serviço de autenticação indisponível"}),
+                503,
+            )  # Service Unavailable
 
         # Se a chave for válida, continua para a rota
         return f(*args, **kwargs)
@@ -194,9 +200,14 @@ def update_flag(name):
         values.append(data["is_enabled"])
 
     if not fields:
-        return jsonify(
-            {"error": "Pelo menos um campo ('description', 'is_enabled') é obrigatório"}
-        ), 400
+        return (
+            jsonify(
+                {
+                    "error": "Pelo menos um campo ('description', 'is_enabled') é obrigatório"
+                }
+            ),
+            400,
+        )
 
     values.append(name)  # Adiciona o 'name' para a cláusula WHERE
 
