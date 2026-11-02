@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
+from telemetry import configure
 
 # Configura o logging
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +19,6 @@ log = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
-from telemetry import configure  # noqa: E402
 
 configure(app, "flag-service")
 

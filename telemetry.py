@@ -54,14 +54,13 @@ def configure(app, name):
     def record(response):
         from flask import request
 
+        counter.add(
+            1, {"http_method": request.method, "status_code": str(response.status_code)}
+        )
+        current = trace.get_current_span().get_span_context()
+        if current.is_valid:
+            response.headers["X-Trace-ID"] = format(current.trace_id, "032x")
         if request.path != "/health":
-            counter.add(
-                1,
-                {
-                    "http_method": request.method,
-                    "status_code": str(response.status_code),
-                },
-            )
             logging.getLogger(name).info(
                 "http_request method=%s status=%s", request.method, response.status_code
             )
