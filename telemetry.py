@@ -1,4 +1,5 @@
 """OTel explicito: Flask, chamadas HTTP, metricas de negocio e logs via Collector."""
+
 import atexit
 import logging
 import os
@@ -21,17 +22,30 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 def configure(app, name):
     if not os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
         return
-    resource = Resource.create({"service.name": name, "service.namespace": "toggle-master",
-                                "service.instance.id": os.getenv("HOSTNAME", name)})
+    resource = Resource.create(
+        {
+            "service.name": name,
+            "service.namespace": "toggle-master",
+            "service.instance.id": os.getenv("HOSTNAME", name),
+        }
+    )
     tp = TracerProvider(resource=resource)
     tp.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
     trace.set_tracer_provider(tp)
-    mp = MeterProvider(resource=resource, metric_readers=[
-        PeriodicExportingMetricReader(OTLPMetricExporter(), export_interval_millis=10000)])
+    mp = MeterProvider(
+        resource=resource,
+        metric_readers=[
+            PeriodicExportingMetricReader(
+                OTLPMetricExporter(), export_interval_millis=10000
+            )
+        ],
+    )
     metrics.set_meter_provider(mp)
     lp = LoggerProvider(resource=resource)
     lp.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter()))
-    logging.getLogger().addHandler(LoggingHandler(level=logging.INFO, logger_provider=lp))
+    logging.getLogger().addHandler(
+        LoggingHandler(level=logging.INFO, logger_provider=lp)
+    )
     FlaskInstrumentor().instrument_app(app, excluded_urls=".*/health")
     RequestsInstrumentor().instrument()
     counter = metrics.get_meter("togglemaster").create_counter("toggle_http_requests")
@@ -39,9 +53,18 @@ def configure(app, name):
     @app.after_request
     def record(response):
         from flask import request
+
         if request.path != "/health":
-            counter.add(1, {"http_method": request.method, "status_code": str(response.status_code)})
-            logging.getLogger(name).info("http_request method=%s status=%s", request.method, response.status_code)
+            counter.add(
+                1,
+                {
+                    "http_method": request.method,
+                    "status_code": str(response.status_code),
+                },
+            )
+            logging.getLogger(name).info(
+                "http_request method=%s status=%s", request.method, response.status_code
+            )
         return response
 
     for provider in (tp, mp, lp):

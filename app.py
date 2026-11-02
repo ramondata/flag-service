@@ -19,6 +19,7 @@ load_dotenv()
 
 app = Flask(__name__)
 from telemetry import configure  # noqa: E402
+
 configure(app, "flag-service")
 
 # --- Configuração ---
@@ -64,14 +65,16 @@ def require_auth(f):
 
         except requests.exceptions.Timeout:
             log.error("Timeout ao conectar com o auth-service")
-            return jsonify(
-                {"error": "Serviço de autenticação indisponível (timeout)"}
-            ), 504  # Gateway Timeout
+            return (
+                jsonify({"error": "Serviço de autenticação indisponível (timeout)"}),
+                504,
+            )  # Gateway Timeout
         except requests.exceptions.RequestException as e:
             log.error(f"Erro ao conectar com o auth-service: {e}")
-            return jsonify(
-                {"error": "Serviço de autenticação indisponível"}
-            ), 503  # Service Unavailable
+            return (
+                jsonify({"error": "Serviço de autenticação indisponível"}),
+                503,
+            )  # Service Unavailable
 
         # Se a chave for válida, continua para a rota
         return f(*args, **kwargs)
@@ -196,9 +199,14 @@ def update_flag(name):
         values.append(data["is_enabled"])
 
     if not fields:
-        return jsonify(
-            {"error": "Pelo menos um campo ('description', 'is_enabled') é obrigatório"}
-        ), 400
+        return (
+            jsonify(
+                {
+                    "error": "Pelo menos um campo ('description', 'is_enabled') é obrigatório"
+                }
+            ),
+            400,
+        )
 
     values.append(name)  # Adiciona o 'name' para a cláusula WHERE
 
@@ -262,4 +270,3 @@ def delete_flag(name):
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8002))  # noqa: PLW1508
     app.run(host="0.0.0.0", port=port, debug=False)
-
