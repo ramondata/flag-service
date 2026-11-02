@@ -50,7 +50,7 @@ RUN groupadd -r appgroup && \
 COPY --from=builder /install /usr/local
 
 # Código da aplicação
-COPY app.py .
+COPY app.py telemetry.py .
 
 # Ajusta permissões
 RUN chown -R appuser:appgroup /app

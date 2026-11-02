@@ -18,6 +18,8 @@ log = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
+from telemetry import configure  # noqa: E402
+configure(app, "flag-service")
 
 # --- Configuração ---
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -260,3 +262,4 @@ def delete_flag(name):
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8002))  # noqa: PLW1508
     app.run(host="0.0.0.0", port=port, debug=False)
+
